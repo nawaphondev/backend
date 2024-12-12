@@ -8,22 +8,16 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Register a new user with duplicate check
+// Register a new user with profile picture upload
 exports.registerUser = async (req, res) => {
   try {
-    const {
-      username,
-      email,
-      password,
-      confirmPassword,
-      userLevel = "User",
-      status = "Active",
-    } = req.body;
+    const { username, email, password, confirmPassword, userLevel = "User", status = "Active" } = req.body;
 
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "Passwords do not match" });
     }
 
+    // แปลงรูปภาพเป็น Base64
     const profilePicture = req.file ? req.file.buffer.toString("base64") : null;
 
     const checkQuery = "SELECT * FROM Users WHERE username = ? OR email = ?";
@@ -33,9 +27,7 @@ exports.registerUser = async (req, res) => {
         return res.status(500).json({ error: err.message });
       }
       if (results.length > 0) {
-        return res
-          .status(400)
-          .json({ error: "Username or email already exists" });
+        return res.status(400).json({ error: "Username or email already exists" });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -55,10 +47,34 @@ exports.registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Unexpected Error in Controller:", error.message);
-    res
-      .status(500)
-      .json({ error: error.message || "Unexpected error occurred" });
+    res.status(500).json({ error: error.message || "Unexpected error occurred" });
   }
+};
+
+
+// Get user profile picture
+exports.getUserProfilePicture = (req, res) => {
+  const userId = req.params.id;
+  const query = "SELECT profile_picture FROM Users WHERE id = ?";
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Database error occurred" });
+    }
+
+    if (results.length === 0 || !results[0].profile_picture) {
+      return res.status(404).json({ error: "Profile picture not found" });
+    }
+
+    const profilePicturePath = `uploads/${results[0].profile_picture}`;
+    res.sendFile(profilePicturePath, { root: "." }, (err) => {
+      if (err) {
+        console.error("File Error:", err);
+        res.status(500).json({ error: "Error sending file" });
+      }
+    });
+  });
 };
 
 // Create a new user (Admin or Super User only)
@@ -110,6 +126,7 @@ exports.loginUser = async (req, res) => {
     res.json({ token });
   });
 };
+
 
 // Forgot password (send reset email to Admin)
 exports.forgotPassword = (req, res) => {
