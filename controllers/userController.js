@@ -51,7 +51,6 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-
 // Get user profile picture
 exports.getUserProfilePicture = (req, res) => {
   const userId = req.params.id;
@@ -126,7 +125,6 @@ exports.loginUser = async (req, res) => {
     res.json({ token });
   });
 };
-
 
 // Forgot password (send reset email to Admin)
 exports.forgotPassword = (req, res) => {
@@ -205,9 +203,10 @@ exports.getCurrentUser = (req, res) => {
   }
 };
 
-exports.getUserProfilePicture = (req, res) => {
+// Read a user by ID
+exports.readUser = (req, res) => {
   const userId = req.params.id;
-  const query = "SELECT profile_picture FROM Users WHERE id = ?";
+  const query = "SELECT id, username, email, user_level, status FROM Users WHERE id = ?";
 
   db.query(query, [userId], (err, results) => {
     if (err) {
@@ -219,17 +218,59 @@ exports.getUserProfilePicture = (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const profilePicture = results[0].profile_picture;
-
-    if (profilePicture) {
-      res.writeHead(200, {
-        "Content-Type": "image/jpeg",
-        "Content-Length": profilePicture.length,
-      });
-      res.end(profilePicture);
-    } else {
-      res.status(404).json({ error: "No profile picture found" });
-    }
+    res.json(results[0]);
   });
 };
 
+// Get all users
+exports.getAllUsers = (req, res) => {
+  const query = "SELECT id, username, email, user_level, status FROM Users";
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Database error occurred" });
+    }
+
+    res.json(results);
+  });
+};
+
+// Update user details
+exports.updateUser = (req, res) => {
+  const userId = req.params.id;
+  const { username, email, userLevel, status } = req.body;
+  const query = "UPDATE Users SET username = ?, email = ?, user_level = ?, status = ? WHERE id = ?";
+
+  db.query(query, [username, email, userLevel, status, userId], (err, result) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Database error occurred" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User updated successfully!" });
+  });
+};
+
+// Delete a user by ID
+exports.deleteUser = (req, res) => {
+  const userId = req.params.id;
+  const query = "DELETE FROM Users WHERE id = ?";
+
+  db.query(query, [userId], (err, result) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Database error occurred" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User deleted successfully!" });
+  });
+};

@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const userController = require("../controllers/userController");
 const authorize = require("../middleware/authorize");
-const authenticateToken = require("../middleware/auth")
+const authenticateToken = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -11,8 +11,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 }, // ขนาดสูงสุด 2MB
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Only image files are allowed!'), false);
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image files are allowed!"), false);
     }
     cb(null, true);
   },
@@ -22,10 +22,10 @@ const upload = multer({
 const validateRegistration = (req, res, next) => {
   const { username, email, password, confirmPassword } = req.body;
   if (!username || !email || !password || !confirmPassword) {
-    return res.status(400).json({ error: 'All fields are required' });
+    return res.status(400).json({ error: "All fields are required" });
   }
   if (password !== confirmPassword) {
-    return res.status(400).json({ error: 'Passwords do not match' });
+    return res.status(400).json({ error: "Passwords do not match" });
   }
   next();
 };
@@ -33,23 +33,23 @@ const validateRegistration = (req, res, next) => {
 // Middleware: Check File Provided
 const checkFileProvided = (req, res, next) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'File not provided' });
+    return res.status(400).json({ error: "File not provided" });
   }
   next();
 };
 
 // User Registration Route
 router.post(
-  '/register',
-  upload.single('profile_picture'),
+  "/register",
+  upload.single("profile_picture"),
   checkFileProvided,
   validateRegistration,
   async (req, res) => {
     try {
       await userController.registerUser(req, res);
     } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Server error' });
+      console.error("Error:", error);
+      res.status(500).json({ error: "Server error" });
     }
   }
 );
@@ -74,7 +74,7 @@ router.use((err, req, res, next) => {
   }
   if (err) {
     console.error("Unexpected Error:", err);
-    return res.status(500).json({ error: 'Unexpected error occurred' });
+    return res.status(500).json({ error: "Unexpected error occurred" });
   }
   next();
 });
@@ -83,5 +83,28 @@ router.get("/me", authenticateToken, userController.getCurrentUser);
 
 router.get("/:id/profile-picture", userController.getUserProfilePicture);
 
+router.get(
+  "/all",
+  authorize(["Admin", "Super User"]), // Optional authorization for secure access
+  userController.getAllUsers
+);
+
+router.get(
+  "/:id",
+  authorize(["Admin", "Super User"]), // Optional authorization for secure access
+  userController.readUser
+);
+
+router.put(
+  "/:id",
+  authorize(["Admin", "Super User"]), // Optional authorization for secure access
+  userController.updateUser
+);
+
+router.delete(
+  "/:id",
+  authorize(["Admin", "Super User"]), // Optional authorization for secure access
+  userController.deleteUser
+);
 
 module.exports = router;
