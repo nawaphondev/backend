@@ -13,6 +13,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const fileRoutes = require("./routes/fileRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(helmet());
 // Static folder for profile images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Routes
+app.use("/api/users", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/equipment", equipmentRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
