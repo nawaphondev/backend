@@ -83,24 +83,29 @@ router.get("/me", authenticateToken, userController.getCurrentUser);
 
 router.get("/:id/profile-picture", userController.getUserProfilePicture);
 
+// Admin Only: Get All Users
 router.get(
   "/all",
-  authorize(["Admin", "Super User"]), // Optional authorization for secure access
-  userController.getAllUsers
+  authenticateToken, // ตรวจสอบ JWT
+  authorize(["Admin", "Super User"]), // ตรวจสอบ user_level
+  userController.getAllUsers // ดึงข้อมูลผู้ใช้
 );
 
+// Admin Only: Update User
 router.get(
   "/:id",
   authorize(["Admin", "Super User"]), // Optional authorization for secure access
   userController.readUser
 );
 
+// Admin Only: Update User
 router.put(
   "/:id",
   authorize(["Admin", "Super User"]), // Optional authorization for secure access
   userController.updateUser
 );
 
+// Admin Only: Delete User
 router.delete(
   "/:id",
   authorize(["Admin", "Super User"]), // Optional authorization for secure access

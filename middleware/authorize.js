@@ -1,21 +1,35 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
-const authorize = (roles) => {
-    return (req, res, next) => {
-        const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
-        if (!token) return res.status(403).json({ error: 'No token provided' });
+const authorize = (allowedLevels) => {
+  return (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1]; // Extract Bearer token
 
-        jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-            if (err) return res.status(403).json({ error: 'Failed to authenticate token' });
-            
-            const userRole = decoded.role;
-            if (!roles.includes(userRole)) {
-                return res.status(403).json({ error: 'Insufficient permissions' });
-            }
+    if (!token) {
+      return res.status(403).json({ error: "No token provided" });
+    }
 
-            next();
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        console.error("Token verification failed:", err.message);
+        return res.status(403).json({ error: "Invalid or expired token" });
+      }
+
+      const userLevel = decoded.userLevel; // ดึง userLevel จาก JWT Payload
+      console.log(`User level: ${userLevel}, Required levels: ${allowedLevels}`);
+
+      if (!allowedLevels.includes(userLevel)) {
+        return res.status(403).json({
+          error: "Insufficient permissions",
+          requiredLevels: allowedLevels,
+          userLevel: userLevel,
         });
-    };
+      }
+
+      req.user = decoded; // Attach user info to req for further processing
+      next();
+    });
+  };
 };
 
 module.exports = authorize;
